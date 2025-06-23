@@ -92,3 +92,75 @@ class TitanicMLPipeline:
         self.test_df = self.train_df.sample(n=200).drop('Survived', axis=1).reset_index(drop=True)
 
         print("Sample data generated for demo")
+
+    def explore_data(self):
+        print("\n" + "="*50)
+        print("Exploratory Data Analysis")
+        print("="*50)
+
+        print("\nDataset Info: ")
+        print(self.train_df.info())
+
+        print("\nMissing Values")
+        missing_data= self.train_df.isnull().sum()
+        missing_percent = 100* missing_data/ len(self.train_df)
+        missing_df = pd.DataFrame({
+            'Missing Count': missing_data,
+            'Percentage': missing_percent
+        })
+        print(missing_df[missing_df['Missing count'] >0])
+
+        print("\nSurvival Rate by Feature")
+        categorical_features = ['Pclass', 'Sex', 'Embarked']
+        for feature in categorical_features:
+            if feature in categorical_features:
+                survival_feature = self.train_df.groupby(feature)['Survived'].mean()
+                print(f"\n{feature}: ")
+                print(survival_feature)
+
+    # creatin new features and preprocessing existing ones
+    def feature_engineering(self):
+        print("\n" "="*50)
+        print("feature engineering")
+        print("="*50)
+
+        def engineer_features(df):
+            df = df.copy()
+            
+            # Create Title feature from Name
+            if 'Name' in df.columns:
+                df['Title'] = df['Name'].str.extract(' ([A-Za-z]+)\.', expand=False)
+                df['Title'] = df['Title'].replace(['Lady', 'Countess','Capt', 'Col','Don', 'Dr', 'Major', 'Rev', 'Sir', 'Jonkheer', 'Dona'], 'Rare')
+                df['Title'] = df['Title'].replace('Mlle', 'Miss')
+                df['Title'] = df['Title'].replace('Ms', 'Miss')
+                df['Title'] = df['Title'].replace('Mme', 'Mrs')
+            else:
+                # synthetic titles based on sex and age
+                df['Title'] = 'Mr'
+                df.loc[df['Sex'] == 'female', 'Title'] = 'Miss'
+                if 'Age' in df.columns:
+                    df.loc[(df['Sex'] == 'female') & (df['Age'] > 18), 'Title'] = 'Mrs'
+            
+            # family size feature
+            df['FamilySize'] = df['SibSp'] + df['Parch'] + 1
+            df['IsAlone'] = (df['FamilySize'] == 1).astype(int)
+            
+            # age groups
+            if 'Age' in df.columns:
+                df['AgeGroup'] = pd.cut(df['Age'], bins=[0, 12, 18, 35, 60, 100], labels=['Child', 'Teen', 'Adult', 'Middle_aged', 'Senior'])
+            
+            # fare groups
+            df['FareGroup'] = pd.qcut(df['Fare'], q=4, labels=['Low', 'Medium', 'High', 'Very_High'])
+            
+            return df
+        
+        self.train_df = engineer_features(self.train_df)
+        self.test_df = engineer_features(self.test_df)
+        
+        print("New features created:")
+        new_features = ['Title', 'FamilySize', 'IsAlone', 'AgeGroup', 'FareGroup']
+        for feature in new_features:
+            if feature in self.train_df.columns:
+                print(f"- {feature}")
+    
+
