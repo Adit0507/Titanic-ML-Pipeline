@@ -378,6 +378,28 @@ class TitanicMLPipeline:
         
         return results
     
+    def feature_importance(self):
+        print("\n" + "="*50)
+        print("Feature Importance")
+        print("="*50)
 
+        if hasattr(self.best_model, 'feature_importances_'):
+            importances = self.best_model.feature_importances_
+            feature_names = self.X_train.columns
 
+            # feature importance data frame
+            importance_df = pd.DataFrame({
+                'feature': feature_names,
+                'importance': importances
+            }).sort_values('importance', ascending=False)
 
+            print(f"Feature Importance ({self.best_model_name}):")
+            print(importance_df)
+
+            return importance_df
+        
+        else:
+            print(f"Feature importance not available for {self.best_model_name}")
+            return None 
+        
+    
