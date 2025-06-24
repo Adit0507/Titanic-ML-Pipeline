@@ -402,4 +402,33 @@ class TitanicMLPipeline:
             print(f"Feature importance not available for {self.best_model_name}")
             return None 
         
-    
+    def make_predictions(self):
+        print("\n" + "="*50)
+        print("Final Predictions")
+        print("="*50) 
+
+        if self.best_model_name in ['Logistic Regression', 'SVM', 'K-Nearest Neighbors']:
+            X_test_use = self.X_test_scaled
+        else: 
+            X_test_use = self.test_df[self.X_train.columns]
+
+        # makin predictions
+        predictions = self.best_model.predict(X_test_use)
+        predictions_probabilities= self.best_model.predict_proba(X_test_use)[:, 1] if hasattr(self.best_model, 'predict_proba') else None 
+
+        # submission dataframe
+        submission = pd.DataFrame({
+            'PassengerId': self.test_df['PassengerId'] if 'PassengerId' in self.test_df.columns else range(len(predictions)),
+            'Survived': predictions
+        })
+
+        if predictions_probabilities is not None:
+            submission['Survival_Probability']= predictions_probabilities
+
+        print(f"Predictions made using {self.best_model_name}")
+        print(f"Predicted survival rate: {predictions.mean():.3f}")
+        print(f"\nFirst 10 predictions:")
+        print(submission.head(10))
+
+        return submission
+
