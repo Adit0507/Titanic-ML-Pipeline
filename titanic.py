@@ -246,5 +246,33 @@ class TitanicMLPipeline:
             'Naive Bayes': GaussianNB()
         } 
 
+        cv= StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        model_scores= {}
         
+        print("Training models with cross validation...")
+        for name, model in models.items():
+            if name in ['Logistic Regression', 'SVM', 'K-Nearest-Neighbors']:
+                X_train_use = self.X_train_scaled
+            else:
+                X_train_use = self.X_train
 
+            # cross validation
+            cv_scores = cross_val_score(model, X_train_use, self.y_train, cv=cv, scoring="accuracy")
+            model_scores[name] = {
+                'mean_score': cv_scores.mean(),
+                'std_score': cv_scores.std(),
+                'scores': cv_scores
+            }
+
+            # training on full training set
+            model.fit(X_train_use, self.y_train)
+            self.models[name] = model
+
+            print(f"{name}: {cv_scores.mean():.4f} (+/- {cv_scores.std() * 2:.4f})")
+
+        best_model_name= max(model_scores.keys(), key=lambda x:model_scores[x]['mean_score'])
+        self.best_model = self.models[best_model_name]
+        self.best_model_name = best_model_name
+        
+        print(f"\nBest model: {best_model_name}")
+        return model_scores
