@@ -333,4 +333,51 @@ class TitanicMLPipeline:
         self.models.update(tuned_models)
         print("\nHyperparameter tuning completed!")
     
- 
+    def evaluate_models(self):
+        print("\n" + "="*50)
+        print("Model Evaluation")
+        print("="*50)
+
+        results = {}
+
+        for name, model in self.models.items():
+            if name in ['Logistic Regression', 'SVM', 'K-Nearest Neighbors']:
+                X_val_use = self.X_val_scaled
+            else:
+                X_val_use = self.X_val 
+
+            # predictions
+            y_pred = model.predict(X_val_use)
+            y_pred_proba = model.predict_proba(X_val_use)[:, 1] if hasattr(model, 'predict_proba') else None
+            
+            # metrics
+            accuracy = accuracy_score(self.y_val, y_pred)
+            roc_auc = roc_auc_score(self.y_val, y_pred_proba) if y_pred_proba is not None else None
+
+            results[name] = {
+                'accuracy': accuracy,
+                'roc_auc': roc_auc,
+                'predictions': y_pred
+            }
+
+            print(f"\n{name}:")
+            print(f"  Accuracy: {accuracy:.4f}")
+            if roc_auc:
+                print(f"  ROC AUC: {roc_auc:.4f}")
+        
+        best_model_name = max(results.keys(), key=lambda x: results[x]['accuracy'])
+        self.best_model = self.models[best_model_name]
+        self.best_model_name = best_model_name
+        
+        print(f"\nBest performing model: {best_model_name}")
+        print(f"Best validation accuracy: {results[best_model_name]['accuracy']:.4f}")
+        
+        # detailed report ffor best model
+        print(f"\nDetailed Classification Report for {best_model_name}:")
+        print(classification_report(self.y_val, results[best_model_name]['predictions']))
+        
+        return results
+    
+
+
+
