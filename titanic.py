@@ -108,7 +108,7 @@ class TitanicMLPipeline:
             'Missing Count': missing_data,
             'Percentage': missing_percent
         })
-        print(missing_df[missing_df['Missing count'] >0])
+        print(missing_df[missing_df['Missing Count'] >0])
 
         print("\nSurvival Rate by Feature")
         categorical_features = ['Pclass', 'Sex', 'Embarked']
@@ -129,7 +129,7 @@ class TitanicMLPipeline:
             
             # Create Title feature from Name
             if 'Name' in df.columns:
-                df['Title'] = df['Name'].str.extract(' ([A-Za-z]+)\.', expand=False)
+                df['Title'] = df['Name'].str.extract(' ([A-Za-z]+)\\.', expand=False)
                 df['Title'] = df['Title'].replace(['Lady', 'Countess','Capt', 'Col','Don', 'Dr', 'Major', 'Rev', 'Sir', 'Jonkheer', 'Dona'], 'Rare')
                 df['Title'] = df['Title'].replace('Mlle', 'Miss')
                 df['Title'] = df['Title'].replace('Ms', 'Miss')
@@ -202,6 +202,7 @@ class TitanicMLPipeline:
 
         # test data
         X_test= self.test_df[available_features].copy()
+        self.X_test = X_test.copy()
 
         categorical_cols = X.select_dtypes(include=['object']).columns
         for col in categorical_cols:
@@ -410,7 +411,7 @@ class TitanicMLPipeline:
         if self.best_model_name in ['Logistic Regression', 'SVM', 'K-Nearest Neighbors']:
             X_test_use = self.X_test_scaled
         else: 
-            X_test_use = self.test_df[self.X_train.columns]
+            X_test_use = self.X_test
 
         # makin predictions
         predictions = self.best_model.predict(X_test_use)
@@ -431,4 +432,39 @@ class TitanicMLPipeline:
         print(submission.head(10))
 
         return submission
+
+    def run_pipeline(self, file_path="titanic.csv"):
+        print("Titanic Survival Prediction: ")
+        print("="*60)
+
+        # load and explore data
+        self.load_data(file_path)
+        self.explore_data()
+
+        # feat. eng and preprocessing
+        self.feature_engineering()
+        self.preprocess_data()
+
+        # model training and evaluation
+        self.train_models()
+        self.hyperparameter_tuning()
+        evaluation_results = self.evaluate_models()
+
+        # feature analysis
+        self.feature_importance()
+
+        final_predictions = self.make_predictions()
+
+        print("\n" + "="*60)
+        print("PIPELINE COMPLETED SUCCESSFULLY!")
+        print("="*60)
+
+        return final_predictions, evaluation_results
+
+if __name__ == "__main__":
+    pipeline = TitanicMLPipeline()
+    predictions, results = pipeline.run_pipeline('titanic.csv')
+    
+    predictions.to_csv('titanic_predictions.csv', index=False)
+    print("\nPredictions saved to 'titanic_predictions.csv'")
 
