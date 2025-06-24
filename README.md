@@ -129,14 +129,3 @@ This project demonstrates proficiency in:
 - **Clean, modular code architecture**
 - **Real-world data preprocessing challenges**
 
-## 🤝 Contributing
-
-Feel free to fork this project and submit pull requests for improvements. Areas for enhancement:
-- Additional feature engineering techniques
-- Ensemble methods implementation
-- Model interpretability (SHAP, LIME)
-- Interactive visualizations
-- Deep learning approaches
-
-
-*Built with ❤️ for learning and demonstrating machine learning engineering skills*
