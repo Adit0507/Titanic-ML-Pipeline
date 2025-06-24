@@ -276,3 +276,61 @@ class TitanicMLPipeline:
         
         print(f"\nBest model: {best_model_name}")
         return model_scores
+
+    def hyperparameter_tuning(self):
+        print("\n" + "="*50)
+        print("Hyperparameter Tuning")
+        print("="*50) 
+
+        # parameter grids for top models
+        param_grids = {
+            'Random Forest': {
+                'n_estimators': [100, 200],
+                'max_depth': [None, 10, 20],
+                'min_samples_split': [2, 5],
+                'min_samples_leaf': [1, 2]
+            },
+            'Gradient Boosting': {
+                'n_estimators': [100, 200],
+                'learning_rate': [0.05, 0.1, 0.15],
+                'max_depth': [3, 5, 7]
+            },
+            'Logistic Regression': {
+                'C': [0.1, 1, 10],
+                'penalty': ['l1', 'l2'],
+                'solver': ['liblinear']
+            }
+        } 
+
+        tuned_models = {}
+
+        for model_name, param_grid in param_grids.items():
+            if model_name in self.models:
+                print(f"\nTuning {model_name}...")
+
+                # getitn base model
+                if model_name == "Random Forest":
+                    base_model = RandomForestClassifier(random_state=42)
+                    X_use = self.X_train
+
+                elif model_name =="Gradient Boosting":
+                    base_model= GradientBoostingClassifier(random_state=42)
+                    X_use = self.X_train
+
+                else :  #logistic regression
+                    base_model = LogisticRegression(random_state=42, max_iter=1000)
+                    X_use = self.X_train_scaled
+
+                # grid search
+                grid_search = GridSearchCV(base_model, param_grid, cv=3, scoring="accuracy", n_jobs=-1, )
+                grid_search.fit(X_use, self.y_train)
+
+                tuned_models[model_name] = grid_search.best_estimator_
+                print(f"Best parameters: {grid_search.best_params_}")
+                print(f"Best cross-validation score: {grid_search.best_score_:.4f}")
+
+        # updatin models with tuned versions
+        self.models.update(tuned_models)
+        print("\nHyperparameter tuning completed!")
+    
+ 
