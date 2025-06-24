@@ -162,5 +162,89 @@ class TitanicMLPipeline:
         for feature in new_features:
             if feature in self.train_df.columns:
                 print(f"- {feature}")
-    
+
+    # handling missing values and encoding categorical variables
+    def preprocess_data(self):
+        print("\n" + "="*50)
+        print("Data preprocessing")
+        print("="*50)
+
+        # handlin missing values
+        # age: fill with median based on Title
+        if 'Age' in self.train_df.columns and self.train_df['Age'].isnull().any() :
+            for title in self.train_df['Title'].unique():
+                age_median = self.train_df[self.train_df['Title'] == title]['Age'].median()
+                self.train_df.loc[(self.train_df['Title'] == title) & (self.train_df['Age'].isnull()), 'Age'] = age_median
+
+                if title in self.test_df['Title'].unique():
+                    self.test_df.loc[(self.test_df['Title'] == title) & (self.test_df['Age'].isnull()), 'Age'] = age_median
+
+        # fill with mode
+        if 'Embarked' in self.train_df.columns:
+            embarked_mode = self.train_df['Embarked'].mode()[0]
+            self.train_df['Embarked'].fillna(embarked_mode, inplace=True)
+            self.test_df['Embarked'].fillna(embarked_mode, inplace=True)
+        
+        # filling with median
+        if self.test_df['Fare'].isnull().any():
+            fare_median = self.train_df['Fare'].median()
+            self.test_df['Fare'].fillna(fare_median, inplace=True)
+
+        # featurs for modelling
+        feature_columns = ['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Embarked','Title', 'FamilySize', 'IsAlone']
+        
+        # only availabe features
+        available_features = [col for col in feature_columns if col in self.train_df.columns]
+        
+        # preparing training data
+        X = self.train_df[available_features].copy()
+        y = self.train_df['Survived']
+
+        # test data
+        X_test= self.test_df[available_features].copy()
+
+        categorical_cols = X.select_dtypes(include=['object']).columns
+        for col in categorical_cols:
+            le = LabelEncoder()
+            X[col] = le.fit_transform(X[col].astype(str))
+            X_test[col] = le.transform(X_test[col].astype(str))
+            self.label_encoders[col] = le 
+
+        # handling remaining missing values
+        imputer = SimpleImputer(strategy="median")
+        X = pd.DataFrame(imputer.fit_transform(X), columns=X.columns)
+        X_test= pd.DataFrame(imputer.fit_transform(X_test), columns=X_test.columns)
+
+        # split training data
+        self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+        # scalin features
+        self.X_train_scaled = self.scaler.fit_transform(self.X_train)
+        self.X_val_scaled = self.scaler.transform(self.X_val)
+        self.X_test_scaled = self.scaler.transform(X_test)
+
+        self.X_train_scaled = pd.DataFrame(self.X_train_scaled, columns=self.X_train.columns)
+        self.X_val_scaled = pd.DataFrame(self.X_val_scaled, columns=self.X_val.columns)
+        self.X_test_scaled = pd.DataFrame(self.X_test_scaled, columns=X_test.columns)
+
+        print("Preprocessing completed")
+        print(f"Training set: {self.X_train.shape}")
+        print(f"Validation set: {self.X_val.shape}")
+        print(f"Features: {list(self.X_train.columns)}")
+
+    def train_models(self):
+        print("\n" + "="*50)
+        print("Model Training")
+        print("="*50)
+
+        models = {
+            'Logistic Regression': LogisticRegression(random_state=42, max_iter=1000),
+            'Random Forest': RandomForestClassifier(random_state=42, n_estimators=100),
+            'Gradient Boosting': GradientBoostingClassifier(random_state=42),
+            'SVM': SVC(random_state=42, probability=True),
+            'K-Nearest Neighbors': KNeighborsClassifier(),
+            'Naive Bayes': GaussianNB()
+        } 
+
+        
 
